@@ -1,0 +1,102 @@
+<dbms value="IBM DB2">
+	<cast query="RTRIM(VARCHAR(%s))" />
+	<length query="LENGTH(RTRIM(VARCHAR(%s)))" />
+	<isnull query="COALESCE(%s,' ')" />
+	<delimiter query="||" />
+	<limit query="ROW_NUMBER() OVER () AS CAP %s) AS qq WHERE CAP" />
+	<limitregexp
+		query="ROW_NUMBER\(\)\s+OVER\s+\(\)\s+AS\s+.+?\s+FROM\s+.+?\)\s+WHERE\s+.+?\s*=\s*[\d]+" />
+	<limitgroupstart />
+	<limitgroupstop />
+	<limitstring />
+	<order query="ORDER BY %s ASC" />
+	<count query="COUNT(%s)" />
+	<comment query="--" />
+	<substring query="SUBSTR((%s),%d,%d)" />
+	<concatenate query="%s||%s" />
+	<case query="SELECT (CASE WHEN (%s) THEN '1' ELSE '0' END) FROM SYSIBM.SYSDUMMY1" />
+	<hex query="HEX(%s)" />
+	<inference query="SUBSTR((%s),%d,1)>'%c'" />
+	<banner query="SELECT os_name||' '||os_version||'.'||os_release FROM sysibmadm.env_sys_info"/>
+	<current_user query="SELECT user FROM SYSIBM.SYSDUMMY1" />
+	<!-- NOTE: On DB2 we use the current user as default schema (database) -->
+	<current_db query="SELECT user FROM SYSIBM.SYSDUMMY1" />
+	<hostname query="SELECT host_name FROM sysibmadm.env_sys_info" />
+	<table_comment />
+	<column_comment />
+	<!-- NOTE: We didn't find a working query for testing if user is DBA, however trying to execute privilegied queries may help -->
+	<is_dba />
+	<!-- NOTE: We didn't find a working query for listing users -->
+	<users /> 
+	<!-- NOTE: On DB2 it is not possible to list password hashes, since they are handled by the OS -->
+	<passwords />
+	<!-- NOTE: We didn't find a working query for listing privileges and roles -->
+	<privileges />
+	<roles />
+	<statements />
+	<!-- NOTE: in DB2 schema names are the counterpart to database names on other DBMSes -->
+	<dbs>
+		<inband query="SELECT DISTINCT table_schema FROM QSYS2.SYSTABLES" />
+		<blind
+			query="SELECT DISTINCT table_schema FROM (SELECT ROW_NUMBER() OVER () AS CAP,table_schema FROM QSYS2.SYSTABLES) AS qq WHERE CAP=%d"
+			count="SELECT COUNT(DISTINCT table_schema) FROM QSYS2.SYSTABLES" />
+	</dbs>
+	<tables>
+		<inband
+			query="SELECT table_name, table_schema FROM QSYS2.SYSTABLES WHERE table_type='T'"
+			condition="table_schema" />
+		<blind
+			query="SELECT table_name FROM (SELECT ROW_NUMBER() OVER () AS CAP,table_name FROM QSYS2.SYSTABLES WHERE table_schema='%s' AND table_type='T') AS qq WHERE CAP=INT('%d')"
+			count="SELECT COUNT(*) FROM QSYS2.SYSTABLES WHERE table_schema='%s' AND table_type='T'" />
+	</tables>
+	<columns>
+		<inband
+			query="SELECT sqlcolumns.name,RTRIM(sqlcolumns.type_name)||'('||RTRIM(VARCHAR(sqlcolumns.column_size))||')' FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE sqlcolumns.table_name='%s'"
+			condition="sqlcolumns.name" />
+		<blind
+			query="SELECT sqlcolumns.name FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE sqlcolumns.table_name='%s'"
+			query2="SELECT RTRIM(sqlcolumns.type_name)||'('||RTRIM(VARCHAR(sqlcolumns.column_size))||')' FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE sqlcolumns.table_name='%s'"
+			count="SELECT COUNT(name) FFROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE sqlcolumns.table_name='%s'"
+			condition="name" />
+	</columns>
+	<dump_table>
+		<inband query="SELECT %s FROM %s" />
+		<blind
+			query="SELECT ENTRY_VALUE FROM (SELECT ROW_NUMBER() OVER () AS CAP,%s AS ENTRY_VALUE FROM %s) AS qq WHERE CAP=%d"
+			count="SELECT COUNT(*) FROM %s" />
+	</dump_table>
+	<search_db>
+		<inband query="SELECT DISTINCT table_schema FROM QSYS2.SYSTABLES WHERE %s"
+			condition="table_schema" />
+		<blind
+			query="SELECT table_schema FROM (SELECT DISTINCT(table_schema) FROM QSYS2.SYSTABLES WHERE %s) AS qq"
+			count="SELECT COUNT(DISTINCT(table_schema)) FROM QSYS2.SYSTABLES WHERE %s"
+			condition="table_schema" />
+	</search_db>
+	<search_table>
+		<inband
+			query="SELECT table_name, table_schema FROM QSYS2.SYSTABLES WHERE table_type='T' AND %s"
+			condition="table_name" condition2="table_schema" />
+		<blind
+			query="SELECT table_schema FROM (SELECT DISTINCT(table_schema) FROM QSYS2.SYSTABLES WHERE table_type='T' AND %s) AS qq"
+			query2="SELECT DISTINCT(table_name) FROM QSYS2.SYSTABLES WHERE table_schema='%s'"
+			count="SELECT COUNT(DISTINCT(table_schema)) FROM QSYS2.SYSTABLES WHERE %s"
+			count2="SELECT COUNT(table_name) FROM QSYS2.SYSTABLES WHERE table_schema='%s'"
+			condition="table_name" condition2="table_schema" />
+	</search_table>
+	<search_column>
+		<inband
+			query="SELECT systables.table_schema,systables.table_name FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE %s"
+			condition="sqlcolumns.name"
+			condition2="systables.table_schema"
+			condition3="systables.table_name" />
+		<blind
+			query="SELECT DISTINCT(systables.table_schema) FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE %s AS qq"
+			query2="SELECT DISTINCT(systables.table_name) FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE systables.table_schema='%s'"
+			count="SELECT COUNT(DISTINCT(systables.table_schema)) FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE %s"
+			count2="SELECT COUNT(DISTINCT(systables.table_name)) FROM QSYS2.SYSTABLES as systables JOIN SYSIBM.SQLCOLUMNS as sqlcolumns ON (systables.table_name = sqlcolumns.table_name AND systables.table_schema=sqlcolumns.table_schem) WHERE systables.table_schema='%s'"
+			condition="sqlcolumns.name"
+			condition2="systables.table_schema"
+			condition3="systables.table_name" />
+	</search_column>
+</dbms>
