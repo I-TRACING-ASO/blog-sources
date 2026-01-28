@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Homepage</title>
+        <style>
+            #user-div {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="home-div">
+            <h2>Welcome to the homepage</h2>
+            <label for="username">Enter your name:</label>
+            <input type="text" id="username" />
+            <button onclick="saveUsername()">Submit</button>
+        </div>
+
+        <div id="user-div">
+            <h2>User Profile</h2>
+            <p>Username: <span id="display-username"></span></p>
+        </div>
+        <script id="user-script">
+            const username = "PLACEHOLDER";
+            document.getElementById('display-username').innerText = username;
+        </script>
+        <script>
+            function escapeXss(input) {
+                return input.replace(/"/g, '\\"').replace(/\//g, '\\/');
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const usernameParam = params.get('username');
+            const escapedUsername = usernameParam ? escapeXss(usernameParam) : 'ANONYMOUS';
+
+            var script = document.getElementById("user-script")
+            script.innerText = script.innerText.replace("PLACEHOLDER", escapedUsername)
+            eval(script.innerText)
+        </script>
+        <script>
+            function saveUsername() {
+                const username = document.getElementById('username').value;
+                window.location.href = `?username=${username}`;
+            }
+        </script>
+        <script>
+            const homeDiv = document.getElementById('home-div');
+            const userDiv = document.getElementById('user-div');
+
+            if (usernameParam) {
+                homeDiv.style.display = 'none';
+                userDiv.style.display = 'block';
+            }
+        </script>
+    </body>
+</html>
